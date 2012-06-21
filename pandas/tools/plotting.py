@@ -180,6 +180,7 @@ def andrews_curves(data, class_column, ax=None, samples=200):
 
 def trellis_display(data, ccol, xcol, ycol, shingle1, bins1, shingle2, bins2, fig=None):
     import matplotlib.pyplot as plt
+    import random
     def random_color(column):
         random.seed(column)
         return [random.random() for _ in range(3)]
@@ -201,10 +202,10 @@ def trellis_display(data, ccol, xcol, ycol, shingle1, bins1, shingle2, bins2, fi
         for ybin1, ybin2 in zip(bins2[:-1], bins2[1:]):
             xs = []
             ys = []
+            ax = fig.add_subplot(nrows, ncols, i * nrows + j + 1)
             for x, y, s1, s2, c in zip(xcol_data, ycol_data, shingle1_data, shingle2_data, ccol_data):
                 if s1 > xbin1 and s1 < xbin2 and s2 > ybin1 and s2 < ybin2:
-                    ax.scatter(xs, ys, marker='+', color=random_color(c))
-            ax = fig.add_subplot(nrows, ncols, i * nrows + j + 1)
+                    ax.scatter(x, y, color=random_color(c))
             ax.set_xlim(min_xcol, max_xcol)
             if j != 0 or i % 2 != 0:
                 ax.get_yaxis().set_visible(False)
