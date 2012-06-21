@@ -178,11 +178,12 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     ax.grid()
     return ax
 
-def trellis_display(data, xcol, ycol, shingle1, bins1, shingle2, bins2, fig=None):
+def trellis_display(data, ccol, xcol, ycol, shingle1, bins1, shingle2, bins2, fig=None):
     import matplotlib.pyplot as plt
     def random_color(column):
         random.seed(column)
         return [random.random() for _ in range(3)]
+    ccol_data = data[ccol].values
     xcol_data = data[xcol].values
     ycol_data = data[ycol].values
     min_xcol, max_xcol = min(xcol_data), max(xcol_data)
@@ -200,10 +201,9 @@ def trellis_display(data, xcol, ycol, shingle1, bins1, shingle2, bins2, fig=None
         for ybin1, ybin2 in zip(bins2[:-1], bins2[1:]):
             xs = []
             ys = []
-            for x, y, s1, s2 in zip(xcol_data, ycol_data, shingle1_data, shingle2_data):
+            for x, y, s1, s2, c in zip(xcol_data, ycol_data, shingle1_data, shingle2_data, ccol_data):
                 if s1 > xbin1 and s1 < xbin2 and s2 > ybin1 and s2 < ybin2:
-                    xs.append(x)
-                    ys.append(y)
+                    ax.scatter(xs, ys, marker='+', color=random_color(c))
             ax = fig.add_subplot(nrows, ncols, i * nrows + j + 1)
             ax.set_xlim(min_xcol, max_xcol)
             if j != 0 or i % 2 != 0:
@@ -214,7 +214,7 @@ def trellis_display(data, xcol, ycol, shingle1, bins1, shingle2, bins2, fig=None
             cell_text1 = ["%.2f < %s < %.2f" % (xbin1, shingle1, xbin2)]
             cell_text2 = ["%.2f < %s < %.2f" % (ybin1, shingle2, ybin2)]
             ax.table(cellText=[cell_text1, cell_text2], loc='top', cellLoc='center', cellColours=[['lightgrey'], ['lightgrey']])
-            ax.scatter(xs, ys, marker='+', color='grey')
+            #ax.scatter(xs, ys, marker='+', color='grey')
             j += 1
         i += 1
     fig.text(0.05, 0.5, shingle1, rotation='vertical', va='center', size='large')
