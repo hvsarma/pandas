@@ -178,6 +178,32 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     ax.grid()
     return ax
 
+class Shingle:
+    def __init__(self, data, col, cat=False, bins=None, nbins=None):
+        self.data = data[col]
+        self.a = min(self.data)
+        self.b = max(self.data)
+        self.cat = cat
+        if cat:
+            self.bins = set(self.data)
+        else:
+            if bins != None:
+                self.bins = bins
+            elif nbins != None:
+                self.bins = [a + ((b - a) / float(nbins)) * i for i in range(nbins + 1)]
+
+    def __getitem__(self, index):
+        if self.cat:
+            return self.bins[index]
+        else:
+            return (self.bins[index], self.bins[index + 1])
+
+    def __len__(self):
+        if self.cat:
+            return len(self.bins)
+        else:
+            return len(self.bins) - 1
+
 def trellis_display(data, xcol, ycol=None, kind='hist', shingle1=None, shingle2=None, class_col=None, fig=None, **kwds):
     """
     shingle1: Format {column : string, categorical : bool, bins : list, nbins : integer}
