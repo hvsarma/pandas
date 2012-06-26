@@ -180,7 +180,8 @@ def andrews_curves(data, class_column, ax=None, samples=200):
 
 class Shingle:
     def __init__(self, data, col, cat=False, bins=None, nbins=None):
-        self.data = data[col]
+        self.data = data[col].values
+        self.col = col
         self.a = min(self.data)
         self.b = max(self.data)
         self.cat = cat
@@ -190,13 +191,16 @@ class Shingle:
             if bins != None:
                 self.bins = bins
             elif nbins != None:
-                self.bins = [a + ((b - a) / float(nbins)) * i for i in range(nbins + 1)]
+                self.bins = [self.a + ((self.b - self.a) / float(nbins)) * i for i in range(nbins + 1)]
 
     def __getitem__(self, index):
         if self.cat:
-            return self.bins[index]
+            val = list(self.bins)[index]
+            return "%s = %s" % (self.col, val), val
         else:
-            return (self.bins[index], self.bins[index + 1])
+            val1 = self.bins[index]
+            val2 = self.bins[index + 1]
+            return "%.2f < %s < %.2f" % (val1, self.col, val2), (val1, val2)
 
     def __len__(self):
         if self.cat:
@@ -204,107 +208,75 @@ class Shingle:
         else:
             return len(self.bins) - 1
 
-def trellis_display(data, xcol, ycol=None, kind='hist', shingle1=None, shingle2=None, class_col=None, fig=None, **kwds):
-    """
-    shingle1: Format {column : string, categorical : bool, bins : list, nbins : integer}
-    shingle2: --''--
-    """
+def trellis_display(frame, xcol=None, ycol=None, ccol=None, kind='hist', shingle1=None, shingle2=None, class_col=None, fig=None, **kwds):
     import matplotlib.pyplot as plt
+    from itertools import product
     import random
     def random_color(column):
         random.seed(column)
         return [random.random() for _ in range(3)]
-    if class_col != None:
-        ccol_data = data[ccol].values
-    xcol_data = data[xcol].values
-    if ycol != None:
-        ycol_data = data[ycol].values
-    min_xcol, max_xcol = min(xcol_data), max(xcol_data)
-    if ycol != None:
-        min_ycol, max_ycol = min(ycol_data), max(ycol_data)
-    if shingle1 != None:
-        shingle1_data = data[shingle1['column']].values
-    if shingle2 != None:
-        shingle2_data = data[shingle2['column']].values
+    def in_(v, interval):
+        if type(()) == type(interval):
+            return v > interval[0] and v < interval[1]
+        else:
+            return v == interval
     if fig == None:
         fig = plt.gcf()
-    if shingle1['nbins'] != None:
-        ncols = shingle1['nbins'] - 1
-        a = min(shingle1_data)
-        b = max(shingle1_data)
-        bins1 = [a + ((b - a) / float(ncols + 1)) * i for i in range(ncols + 2)]
-    elif shingle1['bins'] != None:
-        ncols = len(shingle1['bins']) - 1
-        bins1 = shingle1['bins']
-    else:
-        ncols = 1
-    if shingle2['nbins'] != None:
-        nrows = shingle2['nbins'] - 1
-        a = min(shingle2_data)
-        b = max(shingle2_data)
-        bins2 = [a + ((b - a) / float(nrows + 1)) * i for i in range(nrows + 2)]
-    elif shingle2['bins'] != None:
-        nrows = len(shingle2['nbins']) - 1
-        bins2 = shingle2['bins']
-    else:
+    if xcol != None:
+        data1 = frame[xcol].values
+    if shingle1 == None:
         nrows = 1
-    nsubplots = ncols * nrows
+    else:
+        nrows = len(shingle1)
+    if shingle2 == None:
+        ncols = 1
+    else:
+        ncols = len(shingle2) 
     if kind == 'hist':
-        if shingle1['categorical'] and not shingle2['categorical']:
-            xs = []
-            ys = []
-            ax = fig.add_subplot(nrows, ncols, i * nrows + j + 1)
-        elif not shingle1['categorical'] and shingle2['categorical']:
-            pass
-        elif shingle1['categorical'] and shingle2['categorical']:
-            ncols = len(set(shingle1_data))
-            nrows = len(set(shingle2_data))
-            for i, cat1 in enumerate(set(shingle1_data)):
-                for j, cat2 in enumerate(set(shingle2_data)):
-                    xs = []
-                    ax = fig.add_subplot(nrows, ncols, i * nrows + j + 1)
-                    for x, s1, s2 in zip(xcol_data, shingle1_data, shingle2_data):
-                        if s1 == cat1 and s2 == cat2:
-                            xs.append(x)
-                    if j != 0 or i % 2 != 0:
-                        ax.get_yaxis().set_visible(False)
-                    if i != nrows - 1 or j % 2 != 0:
-                        ax.get_xaxis().set_visible(False)
-                    ax.hist(xs, color='grey')
-                    cell_text1 = ["%s = %s" % (shingle1['column'], cat1)]
-                    cell_text2 = ["%s = %s" % (shingle2['column'], cat2)]
-                    ax.table(cellText=[cell_text1, cell_text2], loc='top', cellLoc='center', cellColours=[['lightgrey'], ['lightgrey']])
-        else:
-            pass
-        fig.text(0.5, 0.05, xcol, rotation='horizontal', va='center', size='large')
-        fig.subplots_adjust(wspace=0.0, hspace=0.2)
+        for row, (s1_str, s1) in enumerate(shingle1):
+            if shingle2 != None:
+                for col, (s2_str, s2) in enumerate(shingle2):
+                    x = [x for x, s1x, s2x in zip(data1, shingle1.data, shingle2.data) if (in_(s1x, s1) and in_(s2x, s2))]
+                    ax = fig.add_subplot(nrows, ncols, row * ncols + col + 1)
+                    if x != []:
+                        ax.hist(x, **kwds)
+                    ax.table(cellText=[[s1_str], [s2_str]], loc='top', cellLoc='center', cellColours=[['lightgrey'], ['lightgrey']])
+            else:
+                x = [x for x, s1x in zip(data1, shingle1.data) if (in_(s1x, s1))]
+                ax = fig.add_subplot(nrows, 1, row + 1)
+                if x != []:
+                    ax.hist(x, **kwds)
+                ax.table(cellText=[[s1_str]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
+        fig.text(0.5, 0.05, xcol, rotation='horizontal', ha='center', size='large')
     elif kind == 'scatter':
-        i = 0
-        for xbin1, xbin2 in zip(bins1[:-1], bins1[1:]):
-            j = 0
-            for ybin1, ybin2 in zip(bins2[:-1], bins2[1:]):
-                xs = []
-                ys = []
-                ax = fig.add_subplot(nrows, ncols, i * nrows + j + 1)
-                for x, y, s1, s2, c in zip(xcol_data, ycol_data, shingle1_data, shingle2_data, ccol_data):
-                    if s1 > xbin1 and s1 < xbin2 and s2 > ybin1 and s2 < ybin2:
-                        ax.scatter(x, y, color=random_color(c))
-                ax.set_xlim(min_xcol, max_xcol)
-                if j != 0 or i % 2 != 0:
-                    ax.get_yaxis().set_visible(False)
-                ax.set_ylim(min_ycol, max_ycol)
-                if i != nrows - 1 or j % 2 != 0:
-                    ax.get_xaxis().set_visible(False)
-                cell_text1 = ["%.2f < %s < %.2f" % (xbin1, shingle1, xbin2)]
-                cell_text2 = ["%.2f < %s < %.2f" % (ybin1, shingle2, ybin2)]
-                ax.table(cellText=[cell_text1, cell_text2], loc='top', cellLoc='center', cellColours=[['lightgrey'], ['lightgrey']])
-                #ax.scatter(xs, ys, marker='+', color='grey')
-                j += 1
-            i += 1
-        fig.text(0.05, 0.5, shingle1, rotation='vertical', va='center', size='large')
-        fig.text(0.5, 0.05, shingle2, rotation='horizontal', ha='center', size='large')
-        fig.subplots_adjust(wspace=0.0, hspace=0.2)
-    return fig
+        data2 = frame[ycol].values
+        data3 = frame[ccol].values
+        classes = list(set(data3))
+        for row, (s1_str, s1) in enumerate(shingle1):
+            if shingle2 != None:
+                for col, (s2_str, s2) in enumerate(shingle2):
+                    to_plot = [(x, y, c) for x, y, c, s1x, s2x in zip(data1, data2, data3, 
+                        shingle1.data, shingle2.data) if (in_(s1x, s1) and in_(s2x, s2))]
+                    ax = fig.add_subplot(nrows, ncols, row * ncols + col + 1)
+                    for class_ in classes:
+                        x = [pair[0] for pair in to_plot if pair[2] == class_]
+                        y = [pair[1] for pair in to_plot if pair[2] == class_]
+                        if x != [] and y != []:
+                            ax.scatter(x, y, color=random_color(class_), **kwds)
+                    ax.table(cellText=[[s1_str], [s2_str]], loc='top', cellLoc='center', cellColours=[['lightgrey'], ['lightgrey']])
+            else:
+                to_plot = [(x, y, c) for x, y, c, s1x in zip(data1, data2, data3, 
+                    shingle1.data) if (in_(s1x, s1))]
+                ax = fig.add_subplot(nrows, 1, row + 1)
+                for class_ in classes:
+                    x = [pair[0] for pair in to_plot if pair[2] == class_]
+                    y = [pair[1] for pair in to_plot if pair[2] == class_]
+                    if x != [] and y != []:
+                        ax.scatter(x, y, color=random_color(class_), **kwds)
+                ax.table(cellText=[[s1_str]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
+            fig.text(0.05, 0.5, ycol, rotation='vertical', va='center', size='large')
+            fig.text(0.5, 0.05, xcol, rotation='horizontal', ha='center', size='large')
+        return fig
 
 def lag_plot(series, ax=None, **kwds):
     """Lag plot for time series.
