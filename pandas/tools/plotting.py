@@ -255,13 +255,17 @@ def trellis_display(frame, xcol=None, ycol=None, ccol=None, kind='hist', shingle
     elif kind == 'scatter':
         data2 = frame[ycol].values
         data3 = frame[ccol].values
+        a1, b1 = min(data1), max(data1)
+        a2, b2 = min(data2), max(data2)
         classes = list(set(data3))
+        axes = [[[] for _ in range(ncols)] for _ in range(nrows)]
         for row, (s1_str, s1) in enumerate(shingle1):
             if shingle2 != None:
                 for col, (s2_str, s2) in enumerate(shingle2):
                     to_plot = [(x, y, c) for x, y, c, s1x, s2x in zip(data1, data2, data3, 
                         shingle1.data, shingle2.data) if (in_(s1x, s1) and in_(s2x, s2))]
                     ax = fig.add_subplot(nrows, ncols, row * ncols + col + 1)
+                    axes[row][col] = ax
                     for class_ in classes:
                         x = [pair[0] for pair in to_plot if pair[2] == class_]
                         y = [pair[1] for pair in to_plot if pair[2] == class_]
@@ -272,15 +276,26 @@ def trellis_display(frame, xcol=None, ycol=None, ccol=None, kind='hist', shingle
                 to_plot = [(x, y, c) for x, y, c, s1x in zip(data1, data2, data3, 
                     shingle1.data) if (in_(s1x, s1))]
                 ax = fig.add_subplot(nrows, 1, row + 1)
+                axes[row][0] = ax
                 for class_ in classes:
                     x = [pair[0] for pair in to_plot if pair[2] == class_]
                     y = [pair[1] for pair in to_plot if pair[2] == class_]
                     if x != [] and y != []:
                         ax.scatter(x, y, color=random_color(class_), **kwds)
                 ax.table(cellText=[[s1_str]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
-            fig.text(0.05, 0.5, ycol, rotation='vertical', va='center', size='large')
-            fig.text(0.5, 0.05, xcol, rotation='horizontal', ha='center', size='large')
-        return fig
+        # Let's set up the axes
+        for row in range(nrows):
+            for col in range(ncols):
+                axes[row][col].set_xlim(a1, b1)
+                axes[row][col].set_ylim(a2, b2)
+                axes[row][col].get_xaxis().set_visible(False)
+                axes[row][col].get_yaxis().set_visible(False)
+        axes[nrows - 1][0].get_xaxis().set_visible(True)
+        axes[nrows - 1][0].get_yaxis().set_visible(True)
+        fig.text(0.05, 0.5, ycol, rotation='vertical', va='center', size='large')
+        fig.text(0.5, 0.05, xcol, rotation='horizontal', ha='center', size='large')
+        fig.subplots_adjust(wspace=0.0)
+    return fig
 
 def lag_plot(series, ax=None, **kwds):
     """Lag plot for time series.
