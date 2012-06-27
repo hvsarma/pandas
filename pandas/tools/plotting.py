@@ -220,6 +220,10 @@ def trellis_display(frame, xcol=None, ycol=None, ccol=None, kind='hist', shingle
             return v > interval[0] and v < interval[1]
         else:
             return v == interval
+    if type("") == type(shingle1):
+        shingle1 = Shingle(frame, shingle1, cat=True)
+    if type("") == type(shingle2):
+        shingle2 = Shingle(frame, shingle2, cat=True)
     if fig == None:
         fig = plt.gcf()
     if xcol != None:
