@@ -17,3 +17,7 @@
 Plotting with RPlot
 *******************
 
+RPlot is a trellis plotting interface for pandas. It works by splitting the
+data set in to groups to be plotted separately. It also arranges the plots
+in a rectangular lattice. There are also features to assign DataFrame 
+attributes to graphical features of a plot. It uses matplotlib for plotting.
