@@ -5,8 +5,8 @@
    :suppress:
 
    import numpy as np
+   from pandas import read_csv
    np.random.seed(123456)
-   from pandas import *
    import pandas.util.testing as tm
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
@@ -26,12 +26,12 @@ A basic plot
 
 .. ipython:: python
 
-    import matplotlib.pyplot as plt
-    from pandas.tools.rplot import RPlot, TrellisGrid, GeomPoint, ScaleRandomColour, ScaleShape, make_aes, ScaleSize, ScaleGradient
-    from pandas import read_csv
+    import pandas.tools.rplot as rplot
     data = read_csv('data/iris.data', sep=',')
-    plot = RPlot(data, x='SepalLength', y='SepalWidth')
-    plot.add(GeomPoint(colour=ScaleGradient('PetalLength', colour1=(0.0, 1.0, 0.5), colour2=(1.0, 0.0, 0.5)),
-        size=ScaleSize('PetalWidth', min_size=10.0, max_size=200.0)))
+    plot = rplot.RPlot(data, x='SepalLength', y='SepalWidth')
+    plot.add(rplot.GeomPoint(colour=rplot.ScaleGradient('PetalLength', colour1=(0.0, 1.0, 0.5), colour2=(1.0, 0.0, 0.5)), 
+            size=rplot.ScaleSize('PetalWidth', min_size=10.0, max_size=200.0),
+            shape=rplot.ScaleShape('Name')))
+
     @savefig rplot_iris.png width=6in
     plot.render(plt.gcf())
